@@ -1,0 +1,10 @@
+.venv
+_pycache_
+dataset.csv
+deductions.csv
+collections_formatted_data.csv
+label_encoder.pkl
+model.pkl
+deductions_test.py
+test.py
+ttets.py

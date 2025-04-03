@@ -1,7 +1,7 @@
 import requests
 import json
 
-BASE_URL = "http://127.0.0.1:5002"
+BASE_URL = "http://127.0.0.1:5000"
 
 # Sample deduction data
 deduction_data = {
@@ -18,12 +18,13 @@ deduction_data = {
 # 1️⃣ POST - Add a new deduction
 print("\n➡️ Adding Deduction...")
 post_response = requests.post(f"{BASE_URL}/post_deduction", json=deduction_data)
+print("Response:", post_response)
 print("Response:", post_response.json())
 
 # 2️⃣ PUT - Update the deduction
-update_data = {"amount": 600, "compiled": "Y"}
+update_data = {"amount": 600, "compiled": "Y", "reason_approval_rejection": "Approved on AI response"}
 print("\n➡️ Updating Deduction...")
-put_response = requests.put(f"{BASE_URL}/update_deduction/12345678", json=update_data)
+put_response = requests.put(f"{BASE_URL}/update_deduction/28407143", json=update_data)
 print("Response:", put_response.json())
 
 # 3️⃣ GET - Get unflagged deductions by customer name
@@ -38,7 +39,7 @@ print("Response:", get_unflagged_response.json())
 
 # 5️⃣ GET - Get deductions with amount greater than 400
 print("\n➡️ Fetching deductions where amount > 400...")
-get_amount_response = requests.get(f"{BASE_URL}/get_deductions_by_amount_greater_than/400")
+get_amount_response = requests.get(f"{BASE_URL}/get_deductions_by_amount_greater_than/4000")
 print("Response:", get_amount_response.json())
 
 # 6️⃣ GET - Get deduction by Deduction ID

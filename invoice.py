@@ -6,23 +6,40 @@ import pandas as pd
 from flask import Flask, request, jsonify
 from openai import AzureOpenAI
 from datetime import datetime
+from azure.storage.blob import BlobServiceClient
 
 endpoint = "https://o2chub8437726184.openai.azure.com/"
 deployment = "gpt-4o-mini"
 api_key = "9FSXgEn7eWvjldGrU54sZ9wsSAtSLGVs0f5pGRoymcjcDwTUQJ3hJQQJ99BCACHYHv6XJ3w3AAAAACOGaDLr"
 api_version = "2024-12-01-preview"
+STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=o2chub1467504494;AccountKey=ZAdBOJyGCr6mhQpD9R+IlVRIhrMgwNIEfs7gK2y9+xb/bwIQQumK387JeSFfppn/dhP5vZM+odXv+AStdovU6Q==;EndpointSuffix=core.windows.net"
+CONTAINER_NAME = "o2c-data"
 client = AzureOpenAI(
     api_version=api_version,
     azure_endpoint=endpoint,
     api_key=api_key,
 )
-data = pd.read_csv('dataset.csv')
 predictor = PaymentDatePredictor()
 
 app = Flask(__name__)
 
+def read_csv_from_blob(blob):
+    blob_service_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION_STRING)
+    blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=blob)
+    csv_data = blob_client.download_blob().content_as_text()
+    df = pd.read_csv(pd.io.common.StringIO(csv_data))
+    return df
+
+def write_csv_to_blob(df, blob):
+    blob_service_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION_STRING)
+    blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=blob)
+    csv_data = df.to_csv(index=False)
+    blob_client.upload_blob(csv_data, overwrite=True)
+
+data = read_csv_from_blob('dataset.csv')
+
 def load_deductions_data():
-    return pd.read_csv('deductions.csv')
+    return read_csv_from_blob('deductions.csv')
 
 def is_valid_deduction_amount(deduction_amount, total_invoice_amount):
     return deduction_amount < (0.06 * total_invoice_amount)
@@ -63,27 +80,24 @@ def azure_api_response(system_prompt, user_prompt):
         return f"Error: {str(e)}"
 
 def load_deductions_data():
-    return pd.read_csv("deductions.csv")
+    return read_csv_from_blob("deductions.csv")
 
 def save_deductions_data(df):
-    df.to_csv("deductions.csv", index=False)
+    write_csv_to_blob(df, "deductions.csv")
 
 @app.route("/post_deduction", methods=["POST"])
 def add_deduction():
     df = load_deductions_data()
     new_deduction = request.get_json()
-
     required_fields = ["amount", "reason_code", "deduction_id", "closing_date", "cust_name", "cust_number"]
     
     if not all(field in new_deduction for field in required_fields):
         return jsonify({"error": "Missing required fields"}), 400
-
-    if new_deduction["deduction_id"] in df["deduction_id"].values:
+    
+    if df["deduction_id"].isin([new_deduction["deduction_id"]]).any():
         return jsonify({"error": f"Deduction ID {new_deduction['deduction_id']} already exists. Please provide a unique Deduction ID."}), 400
-
     df.loc[len(df)] = new_deduction
     save_deductions_data(df)
-    
     return jsonify({"message": "Deduction added successfully"}), 201
 
 @app.route("/update_deduction/<int:deduction_id>", methods=["PUT"])
@@ -252,7 +266,7 @@ def add_invoice():
         
         # Append new data
         data.loc[len(data)] = new_invoice
-        data.to_csv('dataset.csv', index=False)
+        write_csv_to_blob(data, 'dataset.csv')
         
         return jsonify({"message": "Invoice added successfully.", "invoice": new_invoice}), 201
     except Exception as e:
@@ -276,7 +290,7 @@ def update_invoice():
         for key, value in update_data.items():
             if key in data.columns:
                 data.at[index, key] = value
-        data.to_csv('dataset.csv', index=False)
+        write_csv_to_blob(data, 'dataset.csv')
         return jsonify({
             "message": "Invoice details updated successfully.",
             "updated_data": data.loc[index].where(pd.notna(data.loc[index]), None).to_dict()
@@ -300,6 +314,7 @@ def get_invoice_summary():
         with app.test_client() as client:
             response = client.post('/predict-payment-date', json={"cust_number": invoice_data.get("cust_number"), "due_date": datetime.strptime(invoice_data.get("due_date"), "%Y%m%d").strftime("%d-%m-%Y")})
             predicted_payment_date = response.get_json()
+            print("Predicted Payment Date:", predicted_payment_date)
         if int(invoice_data.get("isOpen")) == 1:
             user_prompt = f"Invoice Details: {invoice_data}. Predicted Payment Date: {predicted_payment_date}. Generate a summary of the invoice details with predicted payment date."
         else:
@@ -348,4 +363,4 @@ def get_mitigation_strategies():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port = 5002)
+    app.run(debug=True, port = 5000, use_reloader=False)
