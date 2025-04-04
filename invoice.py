@@ -20,7 +20,7 @@ client = AzureOpenAI(
     api_key=api_key,
 )
 predictor = PaymentDatePredictor()
-
+port = 8001
 app = Flask(__name__)
 
 def read_csv_from_blob(blob):
@@ -84,6 +84,10 @@ def load_deductions_data():
 
 def save_deductions_data(df):
     write_csv_to_blob(df, "deductions.csv")
+
+@app.route("/")
+def home():
+    return "Welcome to the Invoice Management System!"
 
 @app.route("/post_deduction", methods=["POST"])
 def add_deduction():
@@ -363,4 +367,4 @@ def get_mitigation_strategies():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port = 5000, use_reloader=False)
+    app.run(debug=True)
