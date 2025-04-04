@@ -1,0 +1,6 @@
+azure-functions
+flask
+pandas
+numpy
+openai
+azure-storage-blob
