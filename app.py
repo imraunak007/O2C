@@ -65,8 +65,8 @@ def azure_api_response(system_prompt, user_prompt):
         ]
         response = client.chat.completions.create(
             messages=messages,
-            max_tokens=10,
-            temperature=0.0,
+            max_tokens=500,
+            temperature=0.1,
             top_p=1.0,
             model=deployment
         )
@@ -120,10 +120,10 @@ def update_deduction(deduction_id):
     save_deductions_data(df)
     return jsonify({"message": "Deduction updated successfully"}), 200
 
-@app.route("/get_unflagged_deductions_by_cust_number/<cust_number>", methods=["GET"])
-def get_unflagged_deductions_by_cust_number(cust_number):
+@app.route("/get_unflagged_deductions_by_cust_name/<cust_name>", methods=["GET"])
+def get_unflagged_deductions_by_cust_number(cust_name):
     df = load_deductions_data()
-    filtered_df = df[(df["cust_number"] == cust_number) & (df["compiled"].isna() | df["compiled"] != "Y")]
+    filtered_df = df[(df["cust_name"] == cust_name) & (df["compiled"].isna() | df["compiled"] != "Y")]
     if filtered_df.empty:
         return jsonify({"error": "No unflagged deductions found for this customer"}), 404
 
