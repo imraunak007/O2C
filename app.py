@@ -228,7 +228,7 @@ def get_invoice_by_customer_name():
     if filtered.empty:
         return jsonify({"error": "No data for this customer in the specified time frame. Choose another time frame."}), 404
     
-    return jsonify({"message": "Invoice details fetched successfully.","invoices": filtered.replace({pd.NA: None, np.nan: None}).to_dict(orient='records')})
+    return jsonify(filtered.replace({pd.NA: None, np.nan: None}).to_dict(orient='records'))
 
 @app.route('/get_latest_invoices', methods=['GET'])
 def get_latest_invoices():
