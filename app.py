@@ -377,7 +377,6 @@ def update_invoice():
 def get_invoice_summary():
     try:
         invoice_data = request.get_json()
-        print(invoice_data)
         if not invoice_data:
             return jsonify({"error": "No invoice data provided."}), 400
         system_prompt = (
@@ -387,15 +386,13 @@ def get_invoice_summary():
             "Ensure the response clearly states whether the invoice is paid or unpaid."
         )
         with app.test_client() as client:
-            response = client.post('/predict-payment-date', json={"cust_number": invoice_data.get("cust_number"), "due_date": datetime.strptime(invoice_data.get("due_date"), "%Y%m%d").strftime("%d-%m-%Y")})
+            response = client.post('/predict-payment-date', json={"cust_number": invoice_data.get("cust_number"), "due_date": datetime.strptime(str(int(invoice_data.get("due_date"))), "%Y%m%d").strftime("%d-%m-%Y")})
             predicted_payment_date = response.get_json()
-            print("Predicted Payment Date:", predicted_payment_date)
         if int(invoice_data.get("isOpen")) == 1:
             user_prompt = f"Invoice Details: {invoice_data}. Predicted Payment Date: {predicted_payment_date}. Generate a summary of the invoice details with predicted payment date."
         else:
             user_prompt = f"Invoice Details: {invoice_data}. Generate a summary of the invoice details."
         summary = azure_api_response(system_prompt, user_prompt)
-        print("Summary:", summary)
         return jsonify(summary)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -412,10 +409,6 @@ def get_invoice_summary_by_invoice_id(invoice_id):
 
         # Convert row to dict
         invoice_record = invoice.iloc[0].to_dict()
-        print(invoice.dtypes)
-        print(invoice_record)
-        # Ensure date field format for prediction route
-        invoice_record['due_date'] = invoice_record.get('due_in_date')
 
         # Use test client to call /invoice_summary
         with app.test_client() as client:
