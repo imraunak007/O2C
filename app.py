@@ -399,6 +399,31 @@ def get_invoice_summary():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/get_invoice_summary_by_invoice_id/<invoice_id>', methods=['GET'])
+def get_invoice_summary_by_invoice_id(invoice_id):
+    try:
+        # Check if invoice_id exists
+        invoice = data[data['invoice_id'] == invoice_id]
+        if invoice.empty:
+            return jsonify({"error": "Invoice ID not found."}), 404
+
+        # Convert row to dict
+        invoice_record = invoice.iloc[0].to_dict()
+
+        # Ensure date field format for prediction route
+        invoice_record['due_date'] = invoice_record.get('due_in_date')
+
+        # Use test client to call /invoice_summary
+        with app.test_client() as client:
+            response = client.post('/invoice_summary', json=invoice_record)
+            summary = response.get_json()
+
+        return jsonify(summary), response.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/predict-payment-date', methods=['POST'])
 def predict_payment_date():
     data = request.json
