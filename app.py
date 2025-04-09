@@ -403,7 +403,9 @@ def get_invoice_summary():
 def get_invoice_summary_by_invoice_id(invoice_id):
     try:
         # Check if invoice_id exists
-        invoice = data[data['invoice_id'].astype(int).astype(str) == str(invoice_id)]
+        invoice = data.copy()
+        invoice['invoice_id'] = invoice['invoice_id'].fillna(-1).astype(int)
+        invoice = invoice[invoice['invoice_id'] == int(invoice_id)]
         if invoice.empty:
             return jsonify({"error": "Invoice ID not found."}), 404
 
