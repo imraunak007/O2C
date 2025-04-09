@@ -179,6 +179,53 @@ def get_deduction_summary():
     
     return jsonify({"deduction_summary": summary}), 200
 
+@app.route("/get_deduction_summary_id/<int:deduction_id>", methods=["GET"])
+def get_deduction_summary_by_id(deduction_id):
+    try:
+        # Load deductions data
+        df = load_deductions_data()
+        row = df[df["deduction_id"] == deduction_id]
+
+        if row.empty:
+            return jsonify({"error": "Deduction ID not found."}), 404
+
+        # Extract necessary fields
+        deduction_data = row.iloc[0].to_dict()
+
+        required_fields = ["cust_number", "reason_code", "amount", "total_invoice_amount"]
+        if not all(field in deduction_data for field in required_fields):
+            return jsonify({"error": "Required deduction fields are missing in the data."}), 400
+
+        # Prepare payload for validity check
+        validity_payload = {
+            "cust_number": deduction_data["cust_number"],
+            "reason_code": deduction_data["reason_code"],
+            "deduction_amount": deduction_data["amount"],
+            "total_invoice_amount": deduction_data["total_invoice_amount"]
+        }
+
+        # Use test client to call the validity check endpoint
+        with app.test_client() as client:
+            response = client.post('/is-valid-deduction', json=validity_payload)
+            validity_result = response.get_json()
+
+        # Construct prompt for GPT
+        system_prompt = (
+            "You are an AI assistant that provides summaries of financial deductions. "
+            "Analyze the given deduction details and generate a brief summary including whether to give the deductions or not."
+        )
+        user_prompt = (
+            f"Deduction Details: {deduction_data}. "
+            f"The Previous AI response based on historical Data is {validity_result}. "
+            f"Provide a reason as well why AI might have selected this response. Generate a concise summary."
+        )
+
+        summary = azure_api_response(system_prompt, user_prompt)
+        return jsonify({"deduction_summary": summary}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/is-valid-deduction', methods=['POST'])
 def is_valid_deduction():
     data = request.get_json()
