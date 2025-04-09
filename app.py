@@ -244,7 +244,7 @@ def get_deduction_summary_by_id(deduction_id):
         )
 
         summary = azure_api_response(system_prompt, user_prompt)
-        return jsonify({"deduction_summary": summary}), 200
+        return jsonify(summary), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
