@@ -395,7 +395,7 @@ def get_invoice_summary():
             user_prompt = f"Invoice Details: {invoice_data}. Generate a summary of the invoice details."
         summary = azure_api_response(system_prompt, user_prompt)
         print("Summary:", summary)
-        return jsonify({"invoice_summary": summary})
+        return jsonify(summary)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
