@@ -458,5 +458,45 @@ def get_mitigation_strategies():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/get_mitigation_strategies_by_invoice_id/<invoice_id>', methods=['GET'])
+def get_mitigation_strategies_by_invoice_id(invoice_id):
+    try:
+        invoice_df = data.dropna(subset=['invoice_id'])
+        invoice_df = invoice_df[invoice_df['invoice_id'].astype(int) == int(invoice_id)]
+        
+        if invoice_df.empty:
+            return jsonify({"error": "Invoice ID not found."}), 404
+
+        invoice_details = invoice_df.iloc[0].to_dict()
+        # Call internal prediction API
+        with app.test_client() as client:
+            response = client.post('/predict-payment-date', json={
+                "cust_number": invoice_details.get("cust_number"),
+                "due_date": datetime.strptime(str(int(invoice_details.get("due_date"))), "%Y%m%d").strftime("%d-%m-%Y")
+            })
+            prediction = response.get_json()
+        
+        if not prediction or "predicted_payment_date" not in prediction:
+            return jsonify({"error": "Failed to predict payment date."}), 500
+
+        # Generate mitigation strategies via LLM
+        system_prompt = (
+            "You are a financial assistant that provides mitigation strategies for overdue invoices. "
+            "Based on the invoice details and predicted payment date, suggest steps to recover payment efficiently."
+        )
+
+        user_prompt = (
+            f"Invoice Details: {invoice_details}. "
+            f"The due date was {invoice_details.get('due_date')}, but the predicted payment date is {prediction['predicted_payment_date']}. "
+            f"What mitigation strategies should we take? And add due date and predicted payment date to the response. Keep it short and concise"
+        )
+
+        strategies = azure_api_response(system_prompt, user_prompt)
+
+        return jsonify(strategies)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
