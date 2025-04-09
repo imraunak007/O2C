@@ -139,6 +139,29 @@ def get_all_unflagged_deductions():
 
     return jsonify(filtered_df.replace({pd.NA: None, np.nan: None}).to_dict(orient='records')), 200
 
+@app.route("/get_n_unflagged_deductions", methods=["GET"])
+def get_n_unflagged_deductions():
+    try:
+        n = request.args.get("n", default=10, type=int)
+        if n <= 0 or n > 100:
+            return jsonify({"error": "Invalid 'n'. Please provide a value between 1 and 100."}), 400
+
+        df = load_deductions_data()
+        unflagged_df = df[(df["compiled"].isna()) | (df["compiled"] != "Y")]
+
+        if unflagged_df.empty:
+            return jsonify({"error": "No unflagged deductions found."}), 404
+
+        # Optional: sort by latest closing_date if available
+        if "closing_date" in unflagged_df.columns:
+            unflagged_df = unflagged_df.sort_values(by="closing_date", ascending=False)
+
+        top_n = unflagged_df.head(n)
+        return jsonify(top_n.replace({pd.NA: None, np.nan: None}).to_dict(orient='records')), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/get_deductions_by_amount_greater_than/<int:amount>", methods=["GET"])
 def get_deductions_by_amount_greater_than(amount):
     df = load_deductions_data()
