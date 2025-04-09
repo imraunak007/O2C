@@ -377,6 +377,7 @@ def update_invoice():
 def get_invoice_summary():
     try:
         invoice_data = request.get_json()
+        print(invoice_data)
         if not invoice_data:
             return jsonify({"error": "No invoice data provided."}), 400
         system_prompt = (
@@ -411,7 +412,7 @@ def get_invoice_summary_by_invoice_id(invoice_id):
 
         # Convert row to dict
         invoice_record = invoice.iloc[0].to_dict()
-        print(invoice.dtype)
+        print(invoice.dtypes)
         print(invoice_record)
         # Ensure date field format for prediction route
         invoice_record['due_date'] = invoice_record.get('due_in_date')
