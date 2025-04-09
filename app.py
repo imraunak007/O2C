@@ -403,13 +403,14 @@ def get_invoice_summary():
 def get_invoice_summary_by_invoice_id(invoice_id):
     try:
         # Check if invoice_id exists
-        invoice = data[data['invoice_id'].astype(str) == str(invoice_id)]
+        invoice = data[data['invoice_id'].astype(int) == int(invoice_id)]
         if invoice.empty:
             return jsonify({"error": "Invoice ID not found."}), 404
 
         # Convert row to dict
         invoice_record = invoice.iloc[0].to_dict()
-
+        print(invoice.dtype)
+        print(invoice_record)
         # Ensure date field format for prediction route
         invoice_record['due_date'] = invoice_record.get('due_in_date')
 
