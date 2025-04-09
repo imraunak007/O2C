@@ -314,7 +314,7 @@ def get_latest_invoices():
             return jsonify({"error": "No invoice data available."}), 404
 
         # Convert NaN values to None for valid JSON
-        return jsonify({"message": "Invoice details fetched successfully.", "invoices": latest_invoices.replace({pd.NA: None, np.nan: None}).to_dict(orient='records')})
+        return jsonify(latest_invoices.replace({pd.NA: None, np.nan: None}).to_dict(orient='records'))
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
