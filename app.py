@@ -126,7 +126,7 @@ def get_unflagged_deductions_by_cust_number(cust_name):
     filtered_df = df[(df["cust_name"] == cust_name) & (df["compiled"].isna() | df["compiled"] != "Y")]
     if filtered_df.empty:
         return jsonify({"error": "No unflagged deductions found for this customer"}), 404
-
+    filtered_df = filtered_df[['deduction_id', 'cust_name', 'amount']]
     return str(filtered_df.replace({pd.NA: None, np.nan: None}).to_dict(orient='records'))
 
 @app.route("/get_all_unflagged_deductions", methods=["GET"])
@@ -157,6 +157,7 @@ def get_n_unflagged_deductions():
             unflagged_df = unflagged_df.sort_values(by="closing_date", ascending=False)
 
         top_n = unflagged_df.head(n)
+        top_n = top_n[['deduction_id', 'cust_name', 'amount']]
         return str(top_n.replace({pd.NA: None, np.nan: None}).to_dict(orient='records'))
 
     except Exception as e:
@@ -169,7 +170,7 @@ def get_deductions_by_amount_greater_than(amount):
 
     if filtered_df.empty:
         return jsonify({"error": "No deductions found with amount greater than the specified value"}), 404
-
+    filtered_df = filtered_df[['deduction_id', 'cust_name', 'amount']]
     return str(filtered_df.replace({pd.NA: None, np.nan: None}).to_dict(orient='records'))
 
 @app.route("/get_deduction_by_id/<int:deduction_id>", methods=["GET"])
