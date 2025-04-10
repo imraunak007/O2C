@@ -298,6 +298,7 @@ def get_invoice_by_customer_name():
     if filtered.empty:
         return jsonify({"error": "No data for this customer in the specified time frame. Choose another time frame."}), 404
     filtered = filtered[['invoice_id', 'document_create_date', 'total_open_amount']]
+    filtered['invoice_id'] = filtered['invoice_id'].astype(int)
     return str(filtered.replace({pd.NA: None, np.nan: None}).to_dict(orient='records'))
 
 @app.route('/get_latest_invoices', methods=['GET'])
@@ -313,6 +314,7 @@ def get_latest_invoices():
         if latest_invoices.empty:
             return jsonify({"error": "No invoice data available."}), 404
         latest_invoices = latest_invoices[['invoice_id', 'document_create_date', 'total_open_amount']]
+        latest_invoices['invoice_id'] = latest_invoices['invoice_id'].astype(int)
         # Convert NaN values to None for valid JSON
         return str(latest_invoices.replace({pd.NA: None, np.nan: None}).to_dict(orient='records'))
 
